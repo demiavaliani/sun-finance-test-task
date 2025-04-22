@@ -19,4 +19,18 @@ export default defineNuxtConfig({
 			},
 		},
 	},
+	imports: {
+		dirs: ['./types'],
+	},
+	tailwindcss: {
+		config: {
+			theme: {
+				extend: {
+					fontFamily: {
+						'national-park': 'National Park',
+					},
+				},
+			},
+		},
+	},
 });
