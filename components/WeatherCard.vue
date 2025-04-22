@@ -7,7 +7,7 @@
 	>
 		<div class="flex">
 			<span :class="weatherClasses?.textClass">
-				{{ weatherData.city }}
+				{{ weatherData.city }}, {{ weatherData.country }}
 			</span>
 
 			<span

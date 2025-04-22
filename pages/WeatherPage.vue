@@ -5,17 +5,40 @@
 </template>
 
 <script lang="ts" setup>
+	import type { LocationQuery } from 'vue-router';
+
+	definePageMeta({
+		validate: async (route) => {
+			return validateQueryParams(route.query);
+		},
+	});
+
+	const routeParams = useRoute().query;
+
 	const weatherData = ref<WeatherData>({
 		currentTemp: 0,
 		minTemp: 0,
 		maxTemp: 0,
-		city: 'Riga, LV',
+		city: typeof routeParams.city === 'string' ? routeParams.city : '',
+		country: typeof routeParams.country === 'string' ? routeParams.country : '',
 		dateString: '',
 		weatherIcon: '',
 		weatherType: undefined,
 	});
 
 	const tempUnit = ref('metric');
+
+	const validateQueryParams = (query: LocationQuery) => {
+		const lat = parseFloat(typeof query.lat === 'string' ? query.lat : '');
+		const lon = parseFloat(typeof query.lon === 'string' ? query.lon : '');
+
+		const isLatValid = lat >= -90 && lat <= 90;
+		const isLonValid = lon >= -180 && lon <= 180;
+		const isCityValid = Boolean(query.city?.length);
+		const isCountryValid = Boolean(query.country?.length);
+
+		return isLatValid && isLonValid && isCityValid && isCountryValid;
+	};
 
 	const dataExistsInSession = () => {
 		const storage = sessionStorage.getItem(`weather-data-${tempUnit.value}`);
@@ -56,7 +79,17 @@
 		}
 	};
 
-	const updateWeatherDataFromApi = (weatherObject: OneCallResponse) => {
+	const weatherApiResponse = async () => {
+		const response = await fetch(
+			`https://api.openweathermap.org/data/2.5/onecall?lat=${routeParams.lat}&lon=${routeParams.lon}&units=${tempUnit.value}&exclude=minutely,hourly,alerts&appid=5796abbde9106b7da4febfae8c44c232`
+		);
+
+		return response.json();
+	};
+
+	const updateWeatherDataFromApi = async () => {
+		const weatherObject: OneCallResponse = await weatherApiResponse();
+
 		weatherData.value.currentTemp = weatherObject.current.temp;
 		weatherData.value.minTemp = weatherObject.daily[0].temp.min;
 		weatherData.value.maxTemp = weatherObject.daily[0].temp.max;
@@ -66,21 +99,13 @@
 			.main as WeatherData['weatherType'];
 	};
 
-	const weatherApiResponse = async () => {
-		const response = await fetch(
-			`https://api.openweathermap.org/data/3.0/onecall?lat=56.9727164&lon=23.7886979&units=${tempUnit.value}&exclude=minutely,hourly,alerts&appid=5796abbde9106b7da4febfae8c44c232`
-		);
-
-		return response.json();
-	};
-
 	const checkWeather = async () => {
 		if (dataExistsInSession()) {
 			updateWeatherDataFromSession();
 			return;
 		}
 
-		updateWeatherDataFromApi(await weatherApiResponse());
+		await updateWeatherDataFromApi();
 
 		updateSessionStorage();
 	};

@@ -3,6 +3,7 @@ export interface WeatherData {
 	minTemp: DayTemp['min'];
 	maxTemp: DayTemp['max'];
 	city: string;
+	country: string;
 	dateString: string;
 	weatherIcon: string;
 	weatherType?:
@@ -13,4 +14,12 @@ export interface WeatherData {
 		| 'Atmosphere'
 		| 'Clear'
 		| 'Clouds';
+}
+
+export interface CityResponse {
+	name: string;
+	lat: number;
+	lon: number;
+	country: string;
+	state: string;
 }
