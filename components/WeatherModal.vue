@@ -1,115 +1,98 @@
 <template>
-	<div
-		:class="[
-			'relative flex flex-col justify-between items-center w-[300px] h-[520px] p-[20px] rounded-[20px] shadow-[0_0_15px_-5px_rgba(245,166,145,1)] bg-gradient-to-b font-national-park text-[18px] font-[400] text-white',
-			weatherData.weatherClasses?.backgroundClass,
-		]"
-	>
-		<div class="flex">
-			<span :class="weatherData.weatherClasses?.textClass">
-				{{ weatherData.city }}
-			</span>
-
-			<span
-				:class="[
-					'absolute right-[20px] flex items-center gap-[5px]',
-					weatherData.weatherClasses?.textClass,
-				]"
-			>
-				<span>C</span>
-				<input
-					@change="tempUnitChanged"
-					type="checkbox"
-					role="switch"
-					:class="[
-						'appearance-none relative w-[40px] h-[21px] m-0 before:absolute before:top-0 before:left-0 before:w-full before:h-full before:rounded-[11px] after:absolute after:top-[3px] after:left-[3px] after:w-[15px] after:h-[15px] after:bg-white after:rounded-full after:transition-[left] after:duration-100 checked:after:left-[22px]',
-						weatherData.weatherClasses?.switchClass,
-					]"
-				/>
-				<span>F</span>
-			</span>
-		</div>
-
-		<div class="flex flex-col items-center gap-[5px]">
-			<component
-				:is="weatherIconComponent"
-				:size="145"
-				:color="weatherData.weatherClasses?.iconColor"
-			/>
-
-			<p class="text-[75px] font-[700]">
-				{{ weatherData.currentTemp }}
-				<span class="absolute">°</span>
-			</p>
-
-			<p class="text-[24px] font-[200]">
-				{{ weatherData.minTemp }}° | {{ weatherData.maxTemp }}°
-			</p>
-		</div>
-
-		<p>{{ weatherData.dateString }}</p>
+	<div class="flex justify-center items-center h-screen">
+		<WeatherCard :weatherData="weatherData" @unit-changed="onUnitChanged" />
 	</div>
 </template>
 
 <script lang="ts" setup>
-	import {
-		Sun,
-		Moon,
-		CloudSun,
-		CloudMoon,
-		Cloud,
-		Cloudy,
-		CloudRain,
-		CloudSunRain,
-		CloudMoonRain,
-		CloudLightning,
-		Snowflake,
-		CloudFog,
-	} from 'lucide-vue-next';
-	import type { FunctionalComponent } from 'vue';
+	const weatherData = ref<WeatherData>({
+		currentTemp: 0,
+		minTemp: 0,
+		maxTemp: 0,
+		city: 'Riga, LV',
+		dateString: '',
+		weatherIcon: '',
+		weatherType: undefined,
+	});
 
-	const props = defineProps<{
-		weatherData: WeatherData;
-	}>();
+	const tempUnit = ref('metric');
 
-	const emit = defineEmits<{
-		(ev: 'unitChanged', unit: string): void;
-	}>();
+	const dataExistsInSession = () => {
+		const storage = sessionStorage.getItem(`weather-data-${tempUnit.value}`);
 
-	const weatherIconCodeMap: Array<{
-		code: string;
-		icon: FunctionalComponent;
-	}> = [
-		{ code: '01d', icon: Sun },
-		{ code: '01n', icon: Moon },
-		{ code: '02d', icon: CloudSun },
-		{ code: '02n', icon: CloudMoon },
-		{ code: '03d', icon: Cloud },
-		{ code: '03n', icon: Cloud },
-		{ code: '04d', icon: Cloudy },
-		{ code: '04n', icon: Cloudy },
-		{ code: '09d', icon: CloudRain },
-		{ code: '09n', icon: CloudRain },
-		{ code: '10d', icon: CloudSunRain },
-		{ code: '10n', icon: CloudMoonRain },
-		{ code: '11d', icon: CloudLightning },
-		{ code: '11n', icon: CloudLightning },
-		{ code: '13d', icon: Snowflake },
-		{ code: '13n', icon: Snowflake },
-		{ code: '50d', icon: CloudFog },
-		{ code: '50n', icon: CloudFog },
-	];
-
-	const weatherIconComponent = computed(
-		() =>
-			weatherIconCodeMap.find(
-				({ code }) => code === props.weatherData.weatherIcon
-			)?.icon
-	);
-
-	const tempUnitChanged = (ev: Event) => {
-		const elem = ev.target as HTMLInputElement;
-
-		emit('unitChanged', elem.checked ? 'imperial' : 'metric');
+		return Boolean(storage);
 	};
+
+	const updateSessionStorage = () => {
+		sessionStorage.setItem(
+			`weather-data-${tempUnit.value}`,
+			JSON.stringify(weatherData.value)
+		);
+	};
+
+	const getDateString = (currentDate: number) => {
+		const options: Intl.DateTimeFormatOptions = {
+			weekday: 'long',
+			month: '2-digit',
+			day: '2-digit',
+		};
+
+		const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(
+			currentDate * 1000
+		);
+
+		const weekday = parts.find((item) => item.type == 'weekday')?.value;
+		const day = parts.find((item) => item.type == 'day')?.value;
+		const month = parts.find((item) => item.type == 'month')?.value;
+
+		return `${weekday}, ${day}.${month}`;
+	};
+
+	const updateWeatherDataFromSession = () => {
+		const storage = sessionStorage.getItem(`weather-data-${tempUnit.value}`);
+
+		if (storage) {
+			weatherData.value = JSON.parse(storage);
+		}
+	};
+
+	const updateWeatherDataFromApi = (weatherObject: OneCallResponse) => {
+		weatherData.value.currentTemp = weatherObject.current.temp;
+		weatherData.value.minTemp = weatherObject.daily[0].temp.min;
+		weatherData.value.maxTemp = weatherObject.daily[0].temp.max;
+		weatherData.value.dateString = getDateString(weatherObject.current.dt);
+		weatherData.value.weatherIcon = weatherObject.current.weather[0].icon;
+		weatherData.value.weatherType = weatherObject.current.weather[0]
+			.main as WeatherData['weatherType'];
+	};
+
+	const weatherApiResponse = async () => {
+		const response = await fetch(
+			`https://api.openweathermap.org/data/3.0/onecall?lat=56.9727164&lon=23.7886979&units=${tempUnit.value}&exclude=minutely,hourly,alerts&appid=5796abbde9106b7da4febfae8c44c232`
+		);
+
+		return response.json();
+	};
+
+	const checkWeather = async () => {
+		if (dataExistsInSession()) {
+			updateWeatherDataFromSession();
+			return;
+		}
+
+		updateWeatherDataFromApi(await weatherApiResponse());
+
+		updateSessionStorage();
+	};
+
+	const onUnitChanged = (unit: string) => {
+		tempUnit.value = unit;
+
+		checkWeather();
+	};
+
+	onMounted(() => {
+		sessionStorage.clear();
+		checkWeather();
+	});
 </script>

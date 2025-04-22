@@ -5,18 +5,12 @@ export interface WeatherData {
 	city: string;
 	dateString: string;
 	weatherIcon: string;
-	weatherClasses?: {
-		weather:
-			| 'Thunderstorm'
-			| 'Drizzle'
-			| 'Rain'
-			| 'Snow'
-			| 'Atmosphere'
-			| 'Clear'
-			| 'Clouds';
-		backgroundClass: string;
-		textClass: string;
-		switchClass: string;
-		iconColor: string;
-	};
+	weatherType?:
+		| 'Thunderstorm'
+		| 'Drizzle'
+		| 'Rain'
+		| 'Snow'
+		| 'Atmosphere'
+		| 'Clear'
+		| 'Clouds';
 }
