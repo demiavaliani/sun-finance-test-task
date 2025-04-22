@@ -11,9 +11,63 @@
 		maxTemp: 0,
 		city: 'Riga, LV',
 		dateString: '',
+		weatherIcon: '',
+		weatherClasses: undefined,
 	});
 
 	const tempUnit = ref('metric');
+
+	const weatherClassesMap: Array<WeatherData['weatherClasses']> = [
+		{
+			weather: 'Thunderstorm',
+			backgroundClass: 'from-[#708090] to-[#483D8B]',
+			textClass: 'text-white',
+			switchClass: 'before:bg-[#B0E0E6]',
+			iconColor: 'white',
+		},
+		{
+			weather: 'Drizzle',
+			backgroundClass: 'from-[#87CEFA] to-[#B0C4DE]',
+			textClass: 'text-white',
+			switchClass: 'before:bg-[#B0E0E6]',
+			iconColor: 'white',
+		},
+		{
+			weather: 'Rain',
+			backgroundClass: 'from-[#87CEFA] to-[#B0C4DE]',
+			textClass: 'text-white',
+			switchClass: 'before:bg-[#B0E0E6]',
+			iconColor: 'white',
+		},
+		{
+			weather: 'Snow',
+			backgroundClass: 'from-[#F5F5F5] to-[#B0C4DE]',
+			textClass: 'text-[#B0C4DE]',
+			switchClass: 'before:bg-[#B0C4DE]',
+			iconColor: '#B0C4DE',
+		},
+		{
+			weather: 'Atmosphere',
+			backgroundClass: 'from-[#B0E0E6] to-[#D3D3D3]',
+			textClass: 'text-white',
+			switchClass: 'before:bg-[#B0C4DE]',
+			iconColor: 'white',
+		},
+		{
+			weather: 'Clear',
+			backgroundClass: 'from-[#FFF9B0] to-[#F5A691]',
+			textClass: 'text-[#F7A668]',
+			switchClass: 'before:bg-[#F7A668]',
+			iconColor: '#F7A668',
+		},
+		{
+			weather: 'Clouds',
+			backgroundClass: 'from-[#F5F5F5] to-[#B0C4DE]',
+			textClass: 'text-[#B0C4DE]',
+			switchClass: 'before:bg-[#B0C4DE]',
+			iconColor: '#B0C4DE',
+		},
+	];
 
 	const dataExistsInSession = () => {
 		const storage = sessionStorage.getItem(`weather-data-${tempUnit.value}`);
@@ -59,6 +113,10 @@
 		weatherData.value.minTemp = weatherObject.daily[0].temp.min;
 		weatherData.value.maxTemp = weatherObject.daily[0].temp.max;
 		weatherData.value.dateString = getDateString(weatherObject.current.dt);
+		weatherData.value.weatherIcon = weatherObject.current.weather[0].icon;
+		weatherData.value.weatherClasses = weatherClassesMap.find(
+			(item) => item?.weather === weatherObject.current.weather[0].main
+		);
 	};
 
 	const weatherApiResponse = async () => {
